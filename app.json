@@ -40,7 +40,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-sqlite"
+      "expo-sqlite",
+      "react-native-libsodium"
     ],
     "experiments": {
       "typedRoutes": true,

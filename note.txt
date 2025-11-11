@@ -1,0 +1,127 @@
+lockbox/lockbox/
+├── app/          ← On garde (écrans)
+├── assets/       ← On garde (images)
+├── src/          ← Notre code (que tu as créé)
+├── node_modules/ ← On garde (dépendances)
+├── package.json  ← On garde
+└── ...
+
+fichier lockbox/
+├─ app/
+│  ├─ lock.tsx
+│  ├─ index.tsx
+│  ├─ import.tsx
+│  ├─ view.tsx
+│  ├─ settings.tsx
+├─ src/
+│  ├─ types.ts
+│  ├─ db.ts
+│  ├─ crypto.ts
+│  ├─ auth.ts
+│  ├─ files.ts
+
+
+fichie : 
+----------------------------- Types.ts ------------------------------
+
+MIME : le type du contenu (ex: application/pdf, image/png) — utile pour choisir le viewer.
+URI : “adresse” d’un fichier/app resource sur l’appareil (ex: file:///...).
+Hash du PIN : on ne stocke pas le PIN, mais son hash (ex: SHA-256) dans SecureStore.
+Nonce / IV : valeur aléatoire et unique par chiffrement. Avec AEAD (XChaCha20-Poly1305 / AES-GCM), c’est indispensable pour la sécurité. On la stocke avec les métadonnées pour pouvoir déchiffrer.
+category? : champ optionnel (pas obligé de le renseigner).
+
+📋 Résumé ultra-rapide de src/types.ts
+
+DocumentEntry : Un document en DB (id, title, filename chiffré, mime, nonce, catégorie, date, taille)
+CreateDocumentParams : Paramètres pour créer un nouveau document en DB
+AuthConfig : Config sécurité (hash PIN, biométrie on/off, délai auto-lock)
+EncryptionResult : Résultat de chiffrement (data chiffrée + nonce)
+ImportResult : Résultat d'import (success, documentId, error éventuelle)
+FileToImport : Info fichier à importer (uri, nom, mime, taille)
+DecryptionResult : Fichier déchiffré temporaire (uri temp + mime)
+BackupData : Structure d'export (version, timestamp, entries, fichiers en base64)
+AppLockState : État de l'app (locked | unlocked | first-launch)
+DOCUMENT_CATEGORIES : Liste des catégories (Personnel, Travail, Médical, Financier, Juridique, Autre)
+
+
+------------------------ db.ts ---------------------------------------
+!!!!!!
+db = clé USB (branchée ou non).
+initDatabase() = tu la branches.
+ensureDbInitialized() = tu vérifies qu’elle est branchée avant de lire/écrire.
+closeDatabase() = tu l’éjectes proprement avant d’éteindre ton ordi.
+
+FONCTION 
+initDatabase() → crée/ouvre la base SQLite et la table entries si absente.
+
+checkDb() → vérifie que la base est bien initialisée avant utilisation.
+
+insertDocument() → ajoute un nouveau document dans la table.
+
+getAllDocuments() → récupère tous les documents triés par date.
+
+getDocumentById() → obtient un document spécifique via son ID.
+
+getDocumentsByCategory() → liste les documents d’une catégorie donnée.
+
+updateDocumentTitle() → modifie le titre d’un document existant.
+
+updateDocumentCategory() → modifie ou supprime la catégorie d’un document.
+
+deleteDocument() → supprime un document par ID.
+
+searchDocuments() → cherche des documents par mot-clé dans le titre.
+
+getDocumentCount() → retourne le nombre total de documents stockés.
+
+clearDatabase() → vide complètement la table des documents.
+
+closeDatabase() → ferme proprement la connexion à la base.
+
+
+
+
+--------------------------crypto.ts-------------------------------------
+Gère tout ce qui touche au chiffrement et à la clé secrète dans de l'appli.
+DONC : transforme des fichiers “normaux” → en données illisibles, puis il permet de les déchiffrer plus tard avec la bonne clé.
+
+initCrypto() : Initialise la librairie libsodium(le moteur de chiffrement utilisé). 
+→ retourne : rien (void)
+
+ensureMasterKey() : Génère ou récupère la clé maître (32 bytes, SecureStore)
+→ retourne : la clé maître (Uint8Array)
+
+
+encryptData() : Chiffre des données → renvoie { encryptedData, nonce }   ( nonce → une valeur aléatoire utilisée une fois pour ce chiffrement précis, pas secret et stoket dans un fichier )
+                                                                         ( encryptedData → les données chiffrées (illisibles))
+→ retourne : un objet { encryptedData: Uint8Array, nonce: string }
+AEAD = Authenticated Encryption with Associated Data 
+→ Chiffre les données ET vérifie leur intégrité. 
+→ Si quelqu’un modifie le fichier chiffré 
+→ le déchiffrement échoue. 
+→ Utilisé dans LockBox via XChaCha20-Poly1305 (libsodium).
+
+decryptData(encryptedData, nonce) : Déchiffre les données grâce à la clé et au nonce -> fichier original
+→ retourne : les données déchiffrées (Uint8Array ou texte original)
+
+clearMasterKeyCache() : Efface la clé de la mémoire RAM quand l’app se verrouille
+→ retourne : rien (void)
+
+deleteMasterKey() : Supprime définitivement la clé (reset total) -> tout les fichier définitivement illisibles
+→ retourne : rien (void)
+
+hasMasterKey() : Vérifie si une clé maître existe déjà (si elle est dans ke SecureStore)  -> true ou false
+→ retourne : un booléen (boolean)
+
+generateEncryptedFilename() : Crée un nom de fichier aléatoire f_<id>.enc
+→ retourne : une chaîne (string)
+
+hashPassword() : Calcule le hash SHA-256 d’un PIN
+                On ne stocke jamais un mot de passe ni un PIN en clair.
+                Au lieu de ça, on stocke le hash :
+                SHA256("1234") = "03ac674216f3e15c761ee1a5e255f067..."
+→ retourne : le hash (string)
+
+verifyPassword(pin, hash) : Compare un PIN saisi à son hash enregistré
+hash("1234") === pinHash ? OK : refusé
+→ retourne : true si le PIN est correct, false sinon
