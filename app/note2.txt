@@ -1,0 +1,20 @@
+
+FICHIER ------------------------layout.tsx------------------------
+Point d'entrée : initialise tout au démarrage, vérifie le PIN, configure la navigation entre les écrans
+
+App démarre
+    ↓
+_layout.tsx s'exécute
+    ↓
+Initialise DB + Crypto + Files
+    ↓
+Vérifie si PIN existe
+    ↓
+┌─────────────────┬─────────────────┐
+│  Pas de PIN     │  PIN existe     │
+│  → first-launch │  → locked       │
+│  (créer PIN)    │  (déverrouiller)│
+└─────────────────┴─────────────────┘
+    ↓
+Affiche lock.tsx
+
