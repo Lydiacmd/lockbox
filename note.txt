@@ -125,3 +125,37 @@ hashPassword() : Calcule le hash SHA-256 d’un PIN
 verifyPassword(pin, hash) : Compare un PIN saisi à son hash enregistré
 hash("1234") === pinHash ? OK : refusé
 → retourne : true si le PIN est correct, false sinon
+
+
+------------------------------- auth.ts ----------------------
+
+
+
+
+
+---------------------------------- files.ts------------------
+initFileSystem() → Crée les dossiers encrypted/ et temp/ au démarrage
+
+readFileAsBytes() → Lit un fichier et le convertit en Uint8Array (bytes)
+
+writeBytesToFile() → Écrit des bytes (Uint8Array) dans un fichier
+
+encryptAndSaveFile() → Chiffre un fichier et le sauvegarde dans encrypted/ → retourne (filename, nonce, size)
+
+decryptToTempFile() → Déchiffre un fichier et le sauvegarde temporairement dans temp/ → retourne (tempUri, mimeType)
+
+deleteEncryptedFile() → Supprime un fichier chiffré du dossier encrypted/
+
+deleteTempFile() → Supprime un fichier temporaire du cache
+
+cleanTempFiles() → Nettoie tous les fichiers temporaires (appelé au démarrage/verrouillage)
+
+getEncryptedFileSize() → Récupère la taille d'un fichier chiffré en bytes
+
+encryptedFileExists() → Vérifie si un fichier chiffré existe dans encrypted/
+
+listEncryptedFiles() → Liste tous les fichiers dans le dossier encrypted/ (debug)
+
+getExtensionFromMimeType() → Convertit un type MIME en extension (.pdf, .jpg, etc.)
+
+formatFileSize() → Convertit une taille en bytes vers format lisible (Ko, Mo, Go)
