@@ -1,6 +1,8 @@
+import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
-import sodium from 'libsodium-wrappers';
+import sodium from 'libsodium-wrappers-sumo';
 import { EncryptionResult } from './types';
+
 
 /**
  * Gestion de la clé maître et chiffrement/déchiffrement des fichiers
@@ -31,7 +33,7 @@ export async function ensureMasterKey(): Promise<Uint8Array> {
 
         if (storedKey) {
             masterKeyCache = sodium.from_base64(storedKey, sodium.base64_variants.ORIGINAL);
-            console.log(' Clé maître chargée depuis SecureStore');
+            console.log('✅ Clé maître chargée depuis SecureStore');
             return masterKeyCache!;
         }
 
@@ -43,7 +45,7 @@ export async function ensureMasterKey(): Promise<Uint8Array> {
         await SecureStore.setItemAsync(MASTER_KEY_STORAGE, b64Key);
 
         masterKeyCache = newKey;
-        console.log(' Nouvelle clé maître générée et stockée dans SecureStore');
+        console.log('✅ Nouvelle clé maître générée et stockée dans SecureStore');
         return masterKeyCache!;
     } catch (error) {
         console.error('!! Erreur lors de la gestion de la clé maître:', error);
@@ -71,7 +73,7 @@ export async function encryptData(data: Uint8Array): Promise<EncryptionResult> {
         // Convertir le nonce en base64 pour le stockage en base de données
         const nonceBase64 = sodium.to_base64(nonce, sodium.base64_variants.ORIGINAL);
 
-        console.log(' Données chiffrées avec succès');
+        console.log('✅ Données chiffrées avec succès');
         return {
             encryptedData,
             nonce: nonceBase64
@@ -98,7 +100,7 @@ export async function decryptData(encryptedData: Uint8Array, nonceBase64: string
             nonce,
             masterKey
         );
-        console.log(' Données déchiffrées avec succès');
+        console.log('✅ Données déchiffrées avec succès');
         return decryptedData;
     } catch (error) {
         console.error('!! Erreur lors du déchiffrement des données:', error);
@@ -110,7 +112,7 @@ export async function decryptData(encryptedData: Uint8Array, nonceBase64: string
 // Efface la cle maitre du cache (Apres un verrouillage de l'app)
 export function clearMasterKeyCache(): void {
     masterKeyCache = null;
-    console.log(' Clé maître effacée du cache mémoire');
+    console.log('✅ Clé maître effacée du cache mémoire');
 }
 
 
@@ -120,7 +122,7 @@ export async function deleteMasterKey(): Promise<void> {
     try {
         await SecureStore.deleteItemAsync(MASTER_KEY_STORAGE);
         masterKeyCache = null;
-        console.log(' Clé maître supprimée de SecureStore');
+        console.log('✅ Clé maître supprimée de SecureStore');
     } catch (error) {
         console.error('!! Erreur lors de la suppression de la clé maître:', error);
         throw error;
@@ -152,9 +154,12 @@ export function generateEncryptedFilename(): string {
 // Hash un PIN avec SHA-256
 // Pour production, utiliser bcrypt ou Argon2
 export async function hashPassword(password: string): Promise<string> {
-    await sodium.ready;
-    const hash = sodium.crypto_generichash(32, sodium.from_string(password));
-    return sodium.to_base64(hash, sodium.base64_variants.ORIGINAL);
+    // Utiliser expo-crypto pour hasher le PIN
+    const hash = await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        password
+    );
+    return hash;
 }
 
 // Verifier si un mot de passe (pin) correspond au hash

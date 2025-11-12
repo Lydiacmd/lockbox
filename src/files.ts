@@ -6,7 +6,7 @@
 /* eslint-disable */
 // @ts-nocheck
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { decryptData, encryptData, generateEncryptedFilename } from './crypto';
 import { DecryptionResult } from './types';
 
